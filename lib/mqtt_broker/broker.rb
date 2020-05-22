@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'socket'
-require './packets/connect'
+require 'mqtt_broker/packets/connect'
 
 module MqttBroker
   ##
@@ -132,10 +132,4 @@ module MqttBroker
 
   end
 
-  MQTT_PACKET_TYPES = [
-    nil, # a return of 0 is invalid 
-    MqttBroker::Packets::Connect,
-    MqttBroker::Packets::Connack,
-    nil,
-  ]
 end

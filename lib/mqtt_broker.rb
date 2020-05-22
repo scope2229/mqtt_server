@@ -1,12 +1,18 @@
-require "./mqtt_broker/version"
-require './mqtt_broker/broker'
+require_relative "mqtt_broker/version"
+require_relative 'mqtt_broker/broker'
+require 'mqtt_broker/packets/connect'
 
 module MqttBroker
+
   class Error < StandardError; end
-  
-  autoload :Broker, 'mqtt_broker'  
+
+  Broker.new
   
   module Packets
-    autoload :Connect, 'mqtt_broker/packets/connect'
+        
   end
+  MQTT_PACKET_TYPES = [
+    nil,
+    ::Packets::Connect,
+  ]
 end
