@@ -1,0 +1,1 @@
+Changed gem name along with modules and class to conform with https://github.com/mqtt/mqtt.github.io/wiki/Differences-between-3.1.0-and-3.1.1#terminology-changes

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require 'socket'
-require 'mqtt_broker/packets/connect'
+require_relative 'packets/connect'
 
-module MqttBroker
+module MqttServer
   ##
   # MqttBroker::Broker creates a non-blocking multithreaded TCPServer
   # The server follows the MQTT protocol outlined here
@@ -33,11 +33,11 @@ module MqttBroker
   # The Broker class takes in a hash as params with host: and port:
   # both are optional and if either are left out defaults are used.
   # MqttBroker::Broker.new(host: 'localhost', port: 1883)
-  class Broker
+  class Server
     attr_accessor :host
     attr_accessor :port
     attr_accessor :ssl_port
-
+    attr_accessor :packet
     ##
     # Max size of packet to receive
     MAX_REQUEST_SIZE = 1024
@@ -64,18 +64,17 @@ module MqttBroker
                 end
       @socket = nil
       start_listening
+      @packet = nil
+      @flags = []
     end
 
     ##
     # Main loop for server. All incomming connection are handled here
     def start_listening
-      puts "Im listening"
+      puts "The server is listening at HOST:PORT #{@host}:#{@port}"
       loop do
         Thread.start(@server.accept) do |client|
-          puts "HOW MANY TIMES #{@socket}"
-          puts "HOW MANY TIMES CLIENT #{@client}"
           @socket = client
-          puts " HOW MANY SOCKETS #{@socket}"
           read_packet_type unless (@socket = client).nil?
           raise 'Error server connection with empty client information' if client.nil?
         end
@@ -112,24 +111,79 @@ module MqttBroker
     # A CONNECT packets first byte returns as \x10 or 16 with unpack('C')
     # Performing a bit shift right by 4 bits after bit matching (&) returning 
     # The value 1
+    #
+    # FLAGS
+    #  Table 2.2 - Flag Bits (Flags are returned as true or false)
+    # Control Packet | Fixed header flags | Bit 3 | Bit 2 | Bit 1 | Bit 0 |
+    # CONNECT        | Reserved           |   0   |   0   |   0   |   0   |
+    # CONNACK        | Reserved           |   0   |   0   |   0   |   0   |
+    # PUBLISH        | Used in MQTT 3.1.1 |  DUP1 | QoS2  | QoS2  |RETAIN3|
+    # PUBACK         | Reserved           |   0   |   0   |   0   |   0   |
+    # PUBREC         | Reserved           |   0   |   0   |   0   |   0   |
+    # PUBREL         | Reserved           |   0   |   0   |   1   |   0   |
+    # PUBCOMP        | Reserved           |   0   |   0   |   0   |   0   |
+    # SUBSCRIBE      | Reserved           |   0   |   0   |   1   |   0   |
+    # SUBACK         | Reserved           |   0   |   0   |   0   |   0   |
+    # UNSUBSCRIBE    | Reserved           |   0   |   0   |   1   |   0   |
+    # UNSUBACK       | Reserved           |   0   |   0   |   0   |   0   |
+    # PINGREQ        | Reserved           |   0   |   0   |   0   |   0   |
+    # PINGRESP       | Reserved           |   0   |   0   |   0   |   0   |
+    # DISCONNECT     | Reserved           |   0   |   0   |   0   |   0   |
+    #
+    # As per 4.8 Handling errors any error at this stage with the packet or flags
+    # should disconnect the client for which the protocol failure occurred 
     def read_packet_type
       puts "Read the first byte to determine packet_type"
-      byte = @socket.read(1)
+      # byte = @socket.read(1)
+      byte = @socket.read(10)
       raise ProtocolException, 'Failed to read byte from socket' if byte.nil?
+
       type_id = ((byte.unpack('C').first & 0xF0) >> 4)
-      # Now we have the packet type asign defined packet to packet_class
-      packet_class = MqttBroker::MQTT_PACKET_TYPES[type_id]
-      
-      flags = (0..3).map { |i| byte & (2**i) != 0 }
-      puts "What is the first byte #{type_id} :: #{byte.unpack('C').first} :: #{byte.inspect} :: #{byte.to_s} :: #{flags}"
+      # Now we have the packet type, asign defined packet to packet
+      @packet = MqttServer::CONTROL_PACKET_TYPES[type_id]
+
+      return disconnect if packet.nil?
+
+      # we now need the remaining bits to determin the flags
+      @flags = (0..3).map { |i| byte.unpack('C').first & (2**i) != 0 }#byte & (2**i) != 0 }
+
+      return disconnect if @flags == [false, true, false, false]
+
+      puts "What is the first byte #{type_id} :: #{byte.unpack('C').first} :: #{byte.inspect} :: #{byte.to_s} :: #{@flags}"
+
+      byte2 = @socket.read(2)
+      puts "what is the second byte #{byte2}"
+      #  Once the flags have been determined we need the rest of the informaation.
+      # handle_packet_type(type_id)
+
     end
 
-    def validate_flags
-      return if flags == [false, false, false, false]
-
-      raise ProtocolException, "Invalid flags in #{type_name} packet header"
+    def handle_packet_type(packet)
+      puts "WHAT IS PACKET #{packet}"
+      case packet
+      when 0
+        puts 'Error'
+      when 1
+        puts 'Connection'
+      else
+        puts 'Else Error'
+      end
+    end
+    def disconnect
+      puts "client closed"
+      @socket.close unless @socket.nil?
     end
 
+    ##
+    # Handles connect packets
+    def connect 
+      puts "connect packets"
+    end
   end
-
+  # Used as an enum to determin class. 0 and 15 are invalid so nil
+  CONTROL_PACKET_TYPES = [
+    nil,
+    Packets::Connect,
+    nil,
+  ]
 end

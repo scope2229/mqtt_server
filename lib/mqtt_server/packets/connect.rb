@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-module MqttBroker
+module MqttServer
   module Packets
     ##
     # All connect packets follow this convention.
     #
     class Connect
-      def initialize
-        puts "Connect packet"
+      def initialize(args = {})
+        
       end
     end
   end

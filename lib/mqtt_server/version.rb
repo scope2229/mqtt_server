@@ -1,3 +1,3 @@
-module MqttBroker
+module MqttServer
   VERSION = "0.1.1"
 end
