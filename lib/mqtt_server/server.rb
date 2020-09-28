@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'socket'
-require_relative 'packets/connect'
 
 module MqttServer
   ##
@@ -10,7 +9,7 @@ module MqttServer
   # http://mqtt.org/documentation
   #
   # == Usage
-  # 
+  #
   # You can import the project into an existing project,
   # and create a new MqttBroker::Broker object.
   #
@@ -41,7 +40,7 @@ module MqttServer
     ##
     # Max size of packet to receive
     MAX_REQUEST_SIZE = 1024
-
+    SELECT_TIMEOUT = 0.5
     ATTR_DEFAULTS = {
       port: ENV['MQTT_SERVER_PORT'] || 1883,
       ssl_port: ENV['MQTT_SERVER_SSL_PORT'],
@@ -51,7 +50,7 @@ module MqttServer
     }
 
     def initialize(**args)
-      puts "Server created"
+      puts 'Server created'
       ATTR_DEFAULTS.merge(args).each_pair do |k, v|
         send("#{k}=", v)
       end
@@ -74,8 +73,8 @@ module MqttServer
       puts "The server is listening at HOST:PORT #{@host}:#{@port}"
       loop do
         Thread.start(@server.accept) do |client|
-          @socket = client
-          read_packet_type unless (@socket = client).nil?
+          puts "what is the client #{client}"
+          receive_packet unless (@socket = client).nil?
           raise 'Error server connection with empty client information' if client.nil?
         end
       end
@@ -132,58 +131,41 @@ module MqttServer
     #
     # As per 4.8 Handling errors any error at this stage with the packet or flags
     # should disconnect the client for which the protocol failure occurred 
-    def read_packet_type
-      puts "Read the first byte to determine packet_type"
-      # byte = @socket.read(1)
-      byte = @socket.read(10)
-      raise ProtocolException, 'Failed to read byte from socket' if byte.nil?
-
-      type_id = ((byte.unpack('C').first & 0xF0) >> 4)
-      # Now we have the packet type, asign defined packet to packet
-      @packet = MqttServer::CONTROL_PACKET_TYPES[type_id]
-
-      return disconnect if packet.nil?
-
-      # we now need the remaining bits to determin the flags
-      @flags = (0..3).map { |i| byte.unpack('C').first & (2**i) != 0 }#byte & (2**i) != 0 }
-
-      return disconnect if @flags == [false, true, false, false]
-
-      puts "What is the first byte #{type_id} :: #{byte.unpack('C').first} :: #{byte.inspect} :: #{byte.to_s} :: #{@flags}"
-
-      byte2 = @socket.read(2)
-      puts "what is the second byte #{byte2}"
-      #  Once the flags have been determined we need the rest of the informaation.
-      # handle_packet_type(type_id)
-
-    end
-
-    def handle_packet_type(packet)
-      puts "WHAT IS PACKET #{packet}"
-      case packet
-      when 0
-        puts 'Error'
-      when 1
-        puts 'Connection'
-      else
-        puts 'Else Error'
+    def receive_packet
+      result = IO.select([@socket],[],[],SELECT_TIMEOUT)
+      unless result.nil?
+        packet = MqttServer::BasePacket.read(@socket)
+        handle_packet(packet)
+      end
+    rescue StandardError => e
+      unless @socket.nil?
+        @socket.close
+        @socket = nil
+        puts "error found #{e}"
+        # handle_close
       end
     end
-    def disconnect
-      puts "client closed"
-      @socket.close unless @socket.nil?
-    end
 
-    ##
-    # Handles connect packets
-    def connect 
-      puts "connect packets"
+    def handle_packet(packet)
+      # What Class is the packet
+      case packet
+      when MqttServer::PacketTypes::Connect
+        puts "CONNECT PACKET"
+      when MqttServer::PacketTypes::Connack
+        puts "CONNACK PACKET"
+      end
+      # if packet.class == MQTT::Packet::Publish
+      #   # Add to queue
+      #   @read_queue.push(packet)
+      # elsif packet.class == MQTT::Packet::Pingresp
+      #   @last_ping_response = Time.now
+      # elsif packet.class == MQTT::Packet::Puback
+      #   @pubacks_semaphore.synchronize do
+      #     @pubacks[packet.id] << packet
+      #   end
+      # end
+      # Ignore all other packets
+      # FIXME: implement responses for QoS  2
     end
   end
-  # Used as an enum to determin class. 0 and 15 are invalid so nil
-  CONTROL_PACKET_TYPES = [
-    nil,
-    Packets::Connect,
-    nil,
-  ]
 end
