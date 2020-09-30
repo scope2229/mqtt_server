@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-module MqttServer
+module MQTT
   module PacketTypes
     ##
     # All connect packets follow this convention.
     #
-    class Connect < MqttServer::BasePacket
+    class Connect < MQTT::BasePacket
       # The name of the protocol
       attr_accessor :protocol_name
 
@@ -146,18 +146,6 @@ module MqttServer
         str += ", username='#{username}'" unless username.nil?
         str += ', password=...' unless password.nil?
         str + '>'
-      end
-
-      # ---- Deprecated attributes and methods  ---- #
-
-      # @deprecated Please use {#protocol_level} instead
-      def protocol_version
-        protocol_level
-      end
-
-      # @deprecated Please use {#protocol_level=} instead
-      def protocol_version=(args)
-        self.protocol_level = args
       end
     end
   end

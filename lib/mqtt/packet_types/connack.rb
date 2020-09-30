@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-module MqttServer
+module MQTT
   module PacketTypes
     ##
     # All connect packets follow this convention.
     #
-    class Connack < MqttServer::BasePacket
+    class Connack < MQTT::BasePacket
       # Session Present flag
       attr_accessor :session_present
 

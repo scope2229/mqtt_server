@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 #!/usr/bin/env ruby -rubygems
 
-lib = File.expand_path('../lib', __DIR__)
+lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
-require 'mqtt_server/version'
+require 'mqtt/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'mqtt_server'
-  spec.version       = MqttServer::VERSION
+  spec.name          = 'mqtt'
+  spec.version       = MQTT::VERSION
   spec.authors       = ['scope2229']
   spec.email         = ['kaine_76@hotmail.com']
 

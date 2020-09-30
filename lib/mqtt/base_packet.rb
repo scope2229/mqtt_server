@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-module MqttServer
+module MQTT
   ##
-  # MqttServer::BasePacket
+  # MQTT::BasePacket
   class BasePacket
     attr_accessor :version
     attr_accessor :id
@@ -95,7 +95,7 @@ module MqttServer
     def self.create_from_header(byte)
       # Work out the class
       type_id = ((byte & 0xF0) >> 4)
-      packet_class = MqttServer::PACKET_TYPES[type_id]
+      packet_class = MQTT::PACKET_TYPES[type_id]
       if packet_class.nil?
         raise ProtocolException, "Invalid packet type identifier: #{type_id}"
       end
@@ -127,7 +127,7 @@ module MqttServer
 
     # Get the identifer for this packet type
     def type_id
-      index = MqttServer::PACKET_TYPES.index(self.class)
+      index = MQTT::PACKET_TYPES.index(self.class)
       raise "Invalid packet type: #{self.class}" if index.nil?
       index
     end
@@ -278,20 +278,20 @@ module MqttServer
   # An enumeration of the MQTT packet types
   PACKET_TYPES = [
     nil,
-    MqttServer::PacketTypes::Connect,
-    MqttServer::PacketTypes::Connack,
-    MqttServer::PacketTypes::Publish,
-    MqttServer::PacketTypes::Puback,
-    MqttServer::PacketTypes::Pubrec,
-    MqttServer::PacketTypes::Pubrel,
-    MqttServer::PacketTypes::Pubcomp,
-    MqttServer::PacketTypes::Subscribe,
-    MqttServer::PacketTypes::Suback,
-    MqttServer::PacketTypes::Unsubscribe,
-    MqttServer::PacketTypes::Unsuback,
-    MqttServer::PacketTypes::Pingreq,
-    MqttServer::PacketTypes::Pingresp,
-    MqttServer::PacketTypes::Disconnect,
+    MQTT::PacketTypes::Connect,
+    MQTT::PacketTypes::Connack,
+    MQTT::PacketTypes::Publish,
+    MQTT::PacketTypes::Puback,
+    MQTT::PacketTypes::Pubrec,
+    MQTT::PacketTypes::Pubrel,
+    MQTT::PacketTypes::Pubcomp,
+    MQTT::PacketTypes::Subscribe,
+    MQTT::PacketTypes::Suback,
+    MQTT::PacketTypes::Unsubscribe,
+    MQTT::PacketTypes::Unsuback,
+    MQTT::PacketTypes::Pingreq,
+    MQTT::PacketTypes::Pingresp,
+    MQTT::PacketTypes::Disconnect,
     nil
   ]
 end
